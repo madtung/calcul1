@@ -1,107 +1,179 @@
 import streamlit as st
-from calculator_logic import calculate
-import numpy as np
+from calculator_logic import calculate # 이전 파일에서 만든 계산 로직 가져오기
 
 # --- 페이지 설정 ---
-st.set_page_config(
-    page_title="Advanced Streamlit Calculator",
-    layout="centered"
+st.set_page_config(page_title="Streamlit Button Calculator", layout="centered")
+st.title("📱 버튼 기반 Streamlit 계산기")
+
+# 세션 상태 초기화
+if 'current_input' not in st.session_state:
+    st.session_state.current_input = '0' # 현재 화면에 표시되는 값
+if 'operator' not in st.session_state:
+    st.session_state.operator = None     # 선택된 연산자
+if 'first_number' not in st.session_state:
+    st.session_state.first_number = None # 첫 번째 숫자 (피연산자)
+if 'waiting_for_second' not in st.session_state:
+    st.session_state.waiting_for_second = False # 두 번째 숫자 입력을 기다리는지 여부
+if 'last_result' not in st.session_state:
+    st.session_state.last_result = None # 마지막 계산 결과 (연속 계산용)
+
+# --- 계산기 화면 출력 ---
+
+# 결과 표시 창 (가장 크게)
+st.markdown(
+    f"<h1 style='text-align: right; margin-bottom: 0px;'>{st.session_state.current_input}</h1>", 
+    unsafe_allow_html=True
 )
+st.markdown("---")
+# --- 핵심 로직 함수 ---
 
-st.title("🔢 고급 Streamlit 계산기")
+def handle_number(number):
+    """숫자 버튼 클릭 처리"""
+    if st.session_state.waiting_for_second or st.session_state.current_input == '0' or st.session_state.last_result is not None:
+        st.session_state.current_input = str(number)
+        st.session_state.waiting_for_second = False
+        st.session_state.last_result = None
+    else:
+        st.session_state.current_input += str(number)
 
-# --- 연산자 및 입력 설정 ---
+def handle_decimal():
+    """소수점 버튼 클릭 처리"""
+    if '.' not in st.session_state.current_input:
+        st.session_state.current_input += '.'
 
-# 연산자 목록 (사칙연산, mod, 지수, 특수 연산)
-binary_operations = {
-    '+': '덧셈 (Add)', '-': '뺄셈 (Subtract)', '*': '곱셈 (Multiply)', 
-    '/': '나눗셈 (Divide)', 'mod': '나머지 (Modulo)', '**': '지수 (Power)'
-}
+def handle_clear():
+    """초기화 (AC) 버튼 클릭 처리"""
+    st.session_state.current_input = '0'
+    st.session_state.operator = None
+    st.session_state.first_number = None
+    st.session_state.waiting_for_second = False
+    st.session_state.last_result = None
 
-# 단일 숫자 입력이 필요한 연산자 목록 (로그, 삼각함수)
-unary_operations = {
-    'log': '로그 (Log)', 'sin': '사인 (Sine)', 'cos': '코사인 (Cosine)', 'tan': '탄젠트 (Tangent)'
-}
-
-# 탭을 사용하여 입력 UI를 분리
-tab_binary, tab_unary = st.tabs(["이항 연산 (Binary Ops)", "단항 연산 (Unary Ops)"])
-
-with tab_binary:
-    st.header("두 숫자를 사용하는 연산")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # 사용자 입력: 숫자 1
-        num1_bin = st.number_input("첫 번째 숫자 (Num1)", value=0.0, format="%.5f", key="n1_bin")
-    
-    with col2:
-        # 사용자 입력: 연산자 선택
-        operation_bin_label = st.selectbox(
-            "연산 선택", 
-            options=list(binary_operations.keys()), 
-            format_func=lambda x: binary_operations[x], 
-            key="op_bin"
-        )
-    
-    # 숫자 2 입력
-    num2_bin = st.number_input("두 번째 숫자 (Num2)", value=0.0, format="%.5f", key="n2_bin")
-
-    
-    # 계산 버튼
-    if st.button("계산 실행 (Binary)", key="calc_bin"):
-        # 계산 함수 호출
-        result_bin = calculate(num1_bin, num2_bin, operation_bin_label)
+def handle_unary(op):
+    """단항 연산 (sin, log 등) 처리"""
+    try:
+        num = float(st.session_state.current_input)
+        # 로그의 밑은 10으로 고정 (간단한 계산기 모델)
+        base = 10 if op == 'log' else None 
         
-        # 결과 표시
-        st.success(f"**결과:** {result_bin}")
+        result = calculate(num, None, op, base)
         
-    st.markdown("---")
-    st.caption("*참고: 모든 입력은 실수(Float)로 처리됩니다.*")
-
-
-with tab_unary:
-    st.header("하나의 숫자를 사용하는 연산 (Num1)")
-    
-    col3, col4 = st.columns(2)
-    
-    with col3:
-        # 사용자 입력: 숫자 1
-        num1_uni = st.number_input("숫자 (Num1)", value=0.0, format="%.5f", key="n1_uni")
-    
-    with col4:
-        # 사용자 입력: 단항 연산자 선택
-        operation_uni_label = st.selectbox(
-            "연산 선택", 
-            options=list(unary_operations.keys()), 
-            format_func=lambda x: unary_operations[x], 
-            key="op_uni"
-        )
-        
-    # 로그의 밑(Base) 입력 (로그 연산일 경우에만 표시)
-    log_base = None
-    if operation_uni_label == 'log':
-        log_base = st.number_input("로그의 밑 (Base, 0 입력 시 자연로그(ln))", value=0.0, format="%.5f", key="log_base")
-        st.caption("**:red[삼각함수]** 연산 시, 입력값은 **도(degree)**로 간주됩니다.")
-
-
-    # 계산 버튼
-    if st.button("계산 실행 (Unary)", key="calc_uni"):
-        if operation_uni_label == 'log':
-             # 로그 연산일 경우, calculate 함수에 밑(base)을 전달
-             result_uni = calculate(num1_uni, None, operation_uni_label, base=log_base)
+        if isinstance(result, str) and "Error" in result:
+             st.session_state.current_input = result
         else:
-             # 기타 단항 연산일 경우 (num2는 None으로 설정)
-             result_uni = calculate(num1_uni, None, operation_uni_label)
+            # 결과를 화면에 표시
+            st.session_state.current_input = str(result)
+            st.session_state.last_result = result
+            
+        st.session_state.waiting_for_second = True
+
+    except ValueError:
+        st.session_state.current_input = "Error: Invalid Input"
+
+def handle_binary_operator(op):
+    """이항 연산자 (+, -, *, / 등) 처리"""
+    try:
+        current_num = float(st.session_state.current_input)
         
-        # 결과 표시
-        st.success(f"**결과:** {result_uni}")
+        if st.session_state.first_number is None or st.session_state.last_result is not None:
+            # 첫 연산이거나 마지막 결과 후 바로 연산자 누름
+            st.session_state.first_number = current_num
+            st.session_state.operator = op
+            st.session_state.waiting_for_second = True
+            st.session_state.last_result = None
+        else:
+            # 연속 연산: 이전 결과로 계산 후 새로운 연산자 저장
+            result = calculate(st.session_state.first_number, current_num, st.session_state.operator)
+            
+            if isinstance(result, str) and "Error" in result:
+                 st.session_state.current_input = result
+                 handle_clear() # 에러 발생 시 초기화
+            else:
+                st.session_state.first_number = result
+                st.session_state.operator = op
+                st.session_state.current_input = str(result)
+                st.session_state.waiting_for_second = True
+
+    except ValueError:
+        st.session_state.current_input = "Error: Invalid Input"
+
+def handle_equals():
+    """= 버튼 클릭 처리"""
+    if st.session_state.operator and st.session_state.first_number is not None:
+        try:
+            second_num = float(st.session_state.current_input)
+            
+            result = calculate(st.session_state.first_number, second_num, st.session_state.operator)
+            
+            if isinstance(result, str) and "Error" in result:
+                st.session_state.current_input = result
+            else:
+                # 결과 저장 및 상태 초기화
+                st.session_state.current_input = str(result)
+                st.session_state.first_number = None
+                st.session_state.operator = None
+                st.session_state.waiting_for_second = True # 다음 입력은 새 숫자
+                st.session_state.last_result = result # 연속 계산을 위한 마지막 결과
+
+        except ValueError:
+            st.session_state.current_input = "Error: Invalid Input"
+
+# --- 버튼 레이아웃 (5x5 그리드) ---
+# 모든 버튼은 key를 명시적으로 지정해야 Streamlit이 제대로 추적합니다.
+
+col_count = 5
+cols = st.columns(col_count)
+
+# 버튼 정의 (배열 형태로 정의하여 반복문으로 배치)
+buttons = [
+    # 1행: 특수 기능 및 클리어
+    ('sin', lambda: handle_unary('sin'), cols[0]), 
+    ('cos', lambda: handle_unary('cos'), cols[1]), 
+    ('tan', lambda: handle_unary('tan'), cols[2]),
+    ('log', lambda: handle_unary('log'), cols[3]), 
+    ('AC', handle_clear, cols[4], {'type': 'primary'}), # AC 버튼 강조
+
+    # 2행: 숫자 및 이항 연산자
+    ('mod', lambda: handle_binary_operator('mod'), cols[0]),
+    ('**', lambda: handle_binary_operator('**'), cols[1]),
+    ('7', lambda: handle_number(7), cols[2]), 
+    ('8', lambda: handle_number(8), cols[3]), 
+    ('9', lambda: handle_number(9), cols[4]), 
+
+    # 3행
+    ('/', lambda: handle_binary_operator('/'), cols[0]),
+    ('*', lambda: handle_binary_operator('*'), cols[1]),
+    ('4', lambda: handle_number(4), cols[2]), 
+    ('5', lambda: handle_number(5), cols[3]), 
+    ('6', lambda: handle_number(6), cols[4]), 
+
+    # 4행
+    ('-', lambda: handle_binary_operator('-'), cols[0]),
+    ('+', lambda: handle_binary_operator('+'), cols[1]),
+    ('1', lambda: handle_number(1), cols[2]), 
+    ('2', lambda: handle_number(2), cols[3]), 
+    ('3', lambda: handle_number(3), cols[4]), 
+
+    # 5행
+    ('0', lambda: handle_number(0), cols[2]), # 0은 3열에 배치
+    ('.', handle_decimal, cols[3]), 
+    ('=', handle_equals, cols[4], {'type': 'primary'}), # = 버튼 강조
+]
+
+# 버튼 배치 루프
+for label, callback, col, kwargs in buttons:
+    with col:
+        # style 인자 처리
+        button_style = kwargs.get('type', 'secondary') 
         
-    st.markdown("---")
-    # LaTeX를 사용하여 삼각함수 설명
-    st.markdown("### 주요 수학 상수")
-    st.latex(r'''
-        \pi \approx 3.14159... \\
-        e \approx 2.71828...
-    ''')
-    st.caption("NumPy를 사용하여 계산합니다.")
+        # 버튼 생성 및 콜백 함수 연결
+        st.button(
+            label, 
+            on_click=callback, 
+            key=f"btn_{label}", 
+            use_container_width=True, # 버튼이 컬럼 폭에 꽉 차도록
+            type=button_style
+        )
+        
+st.markdown("---")
+st.caption("사칙연산, Modulo, 지수, 로그(밑 10), 삼각함수(도 기준)를 지원합니다.")
