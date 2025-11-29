@@ -210,3 +210,40 @@ elif page == "확률 시뮬레이터 🎲":
     probability_page()
 
 # --- app.py 끝 ---
+
+import streamlit as st
+from calculator_page import calculator_page, init_calculator_state
+from probability_page import probability_page
+from world_population_page import world_population_page # 새 페이지 임포트
+
+# --- 1. 페이지 설정 및 라우팅 ---
+st.set_page_config(
+    page_title="통합 웹 앱 (다기능)",
+    layout="wide" # 지도 시각화를 위해 레이아웃을 'wide'로 변경
+)
+
+# 사이드바에서 페이지 선택
+st.sidebar.title("메인 메뉴")
+page = st.sidebar.radio(
+    "원하는 앱을 선택하세요:",
+    ["계산기 📱", "확률 시뮬레이터 🎲", "연도별 세계 인구 분석 🌍"]
+)
+
+st.title(f"통합 웹 앱: {page}")
+st.markdown("---")
+
+# --- 2. 페이지별 분기 처리 및 함수 호출 ---
+
+if page == "계산기 📱":
+    init_calculator_state()
+    st.header("고급 버튼 계산기")
+    # 계산기 UI는 'centered' 레이아웃이 더 적합하지만, 전체 앱은 'wide'를 따릅니다.
+    calculator_page() 
+    
+elif page == "확률 시뮬레이터 🎲":
+    probability_page()
+
+elif page == "연도별 세계 인구 분석 🌍":
+    world_population_page()
+
+# --- app.py 끝 ---
