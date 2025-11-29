@@ -176,40 +176,6 @@ for row_labels in calculator_grid:
 st.markdown("---")
 st.caption("사칙연산 버튼 레이블을 영어 약자(ADD, SUB, MUL, DIV)로 변경하여 표시 오류를 해결했습니다.")
 
-import streamlit as st
-from calculator_page import calculator_page, init_calculator_state
-from probability_page import probability_page
-import numpy as np
-
-# --- 1. 페이지 설정 및 라우팅 ---
-st.set_page_config(
-    page_title="통합 웹 앱 (계산기 + 확률 시뮬레이터)",
-    layout="centered"
-)
-
-# 사이드바에서 페이지 선택
-st.sidebar.title("메인 메뉴")
-page = st.sidebar.radio(
-    "원하는 앱을 선택하세요:",
-    ["계산기 📱", "확률 시뮬레이터 🎲"]
-)
-
-st.title(f"통합 웹 앱: {page}")
-st.markdown("---")
-
-# --- 2. 페이지별 분기 처리 및 함수 호출 ---
-
-if page == "계산기 📱":
-    # 계산기 페이지 로직 실행 전에 상태를 초기화하거나 확인합니다.
-    init_calculator_state()
-    st.header("고급 버튼 계산기")
-    calculator_page()
-    
-elif page == "확률 시뮬레이터 🎲":
-    # 확률 시뮬레이터 페이지는 별도의 상태 초기화가 필요 없습니다.
-    probability_page()
-
-# --- app.py 끝 ---
 
 import streamlit as st
 from calculator_page import calculator_page, init_calculator_state
