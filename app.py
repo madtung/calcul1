@@ -1,11 +1,12 @@
 import streamlit as st
-from calculator_logic import calculate # 이전 파일에서 만든 계산 로직 가져오기
+# calculator_logic.py 파일에서 calculate 함수를 가져옵니다.
+from calculator_logic import calculate 
 
 # --- 페이지 설정 ---
 st.set_page_config(page_title="Streamlit Button Calculator", layout="centered")
 st.title("📱 버튼 기반 Streamlit 계산기")
 
-# 세션 상태 초기화
+# --- 1. 세션 상태 초기화 ---
 if 'current_input' not in st.session_state:
     st.session_state.current_input = '0' # 현재 화면에 표시되는 값
 if 'operator' not in st.session_state:
@@ -18,17 +19,17 @@ if 'last_result' not in st.session_state:
     st.session_state.last_result = None # 마지막 계산 결과 (연속 계산용)
 
 # --- 계산기 화면 출력 ---
-
-# 결과 표시 창 (가장 크게)
 st.markdown(
     f"<h1 style='text-align: right; margin-bottom: 0px;'>{st.session_state.current_input}</h1>", 
     unsafe_allow_html=True
 )
 st.markdown("---")
-# --- 핵심 로직 함수 ---
+
+# --- 2. 핵심 로직 함수 ---
 
 def handle_number(number):
     """숫자 버튼 클릭 처리"""
+    # 마지막 결과 후/연산자 선택 후/초기 '0' 상태일 때 새 숫자로 대체
     if st.session_state.waiting_for_second or st.session_state.current_input == '0' or st.session_state.last_result is not None:
         st.session_state.current_input = str(number)
         st.session_state.waiting_for_second = False
@@ -56,13 +57,19 @@ def handle_unary(op):
         # 로그의 밑은 10으로 고정 (간단한 계산기 모델)
         base = 10 if op == 'log' else None 
         
+        # calculate 함수 호출
         result = calculate(num, None, op, base)
         
         if isinstance(result, str) and "Error" in result:
              st.session_state.current_input = result
         else:
             # 결과를 화면에 표시
-            st.session_state.current_input = str(result)
+            # 너무 긴 실수는 보기 좋게 포맷팅
+            if isinstance(result, (int, float)):
+                st.session_state.current_input = f"{result:.10g}" if abs(result) < 1e10 else str(result)
+            else:
+                 st.session_state.current_input = str(result)
+
             st.session_state.last_result = result
             
         st.session_state.waiting_for_second = True
@@ -87,11 +94,14 @@ def handle_binary_operator(op):
             
             if isinstance(result, str) and "Error" in result:
                  st.session_state.current_input = result
-                 handle_clear() # 에러 발생 시 초기화
+                 # 에러 발생 시 상태 초기화
+                 st.session_state.first_number = None
+                 st.session_state.operator = None
+                 st.session_state.waiting_for_second = True
             else:
                 st.session_state.first_number = result
                 st.session_state.operator = op
-                st.session_state.current_input = str(result)
+                st.session_state.current_input = f"{result:.10g}" # 포맷팅하여 표시
                 st.session_state.waiting_for_second = True
 
     except ValueError:
@@ -109,7 +119,12 @@ def handle_equals():
                 st.session_state.current_input = result
             else:
                 # 결과 저장 및 상태 초기화
-                st.session_state.current_input = str(result)
+                # 포맷팅하여 표시
+                if isinstance(result, (int, float)):
+                    st.session_state.current_input = f"{result:.10g}"
+                else:
+                    st.session_state.current_input = str(result)
+                
                 st.session_state.first_number = None
                 st.session_state.operator = None
                 st.session_state.waiting_for_second = True # 다음 입력은 새 숫자
@@ -118,14 +133,13 @@ def handle_equals():
         except ValueError:
             st.session_state.current_input = "Error: Invalid Input"
 
-# --- 버튼 레이아웃 (5x5 그리드) ---
-# 모든 버튼은 key를 명시적으로 지정해야 Streamlit이 제대로 추적합니다.
+# --- 3. 버튼 레이아웃 및 연결 ---
 
 col_count = 5
 cols = st.columns(col_count)
 
 # 버튼 정의 (배열 형태로 정의하여 반복문으로 배치)
-buttons = [
+buttons_data = [
     # 1행: 특수 기능 및 클리어
     ('sin', lambda: handle_unary('sin'), cols[0]), 
     ('cos', lambda: handle_unary('cos'), cols[1]), 
@@ -154,25 +168,28 @@ buttons = [
     ('2', lambda: handle_number(2), cols[3]), 
     ('3', lambda: handle_number(3), cols[4]), 
 
-    # 5행
-    ('0', lambda: handle_number(0), cols[2]), # 0은 3열에 배치
+    # 5행 (0, 소수점, 이퀄)
+    ('0', lambda: handle_number(0), cols[2]), 
     ('.', handle_decimal, cols[3]), 
     ('=', handle_equals, cols[4], {'type': 'primary'}), # = 버튼 강조
 ]
 
 # 버튼 배치 루프
-for label, callback, col, kwargs in buttons:
+for item in buttons_data:
+    label, callback, col = item[0], item[1], item[2]
+    kwargs = item[3] if len(item) == 4 else {}
+    
     with col:
         # style 인자 처리
-        button_style = kwargs.get('type', 'secondary') 
+        button_type = kwargs.get('type', 'secondary') 
         
         # 버튼 생성 및 콜백 함수 연결
         st.button(
             label, 
             on_click=callback, 
             key=f"btn_{label}", 
-            use_container_width=True, # 버튼이 컬럼 폭에 꽉 차도록
-            type=button_style
+            use_container_width=True, 
+            type=button_type
         )
         
 st.markdown("---")
