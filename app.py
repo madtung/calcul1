@@ -122,8 +122,6 @@ def handle_equals():
         except ValueError:
             st.session_state.current_input = "Error: Invalid Input"
 
-
-# --- 3. 버튼 레이아웃 및 연결 (수정된 부분) ---
 # (앞부분의 import, session_state 초기화, 함수 정의는 그대로 둡니다.)
 # ...
 
@@ -132,30 +130,30 @@ def handle_equals():
 col_count = 5
 cols = st.columns(col_count)
 
-# 버튼 정의 함수 매핑 (이전과 동일)
+# 버튼 정의 함수 매핑 (레이블은 길어졌지만, 콜백은 기존 연산자를 사용합니다.)
 button_map = {
     'sin': lambda: handle_unary('sin'), 'cos': lambda: handle_unary('cos'), 'tan': lambda: handle_unary('tan'), 'log': lambda: handle_unary('log'), 
-    'AC': handle_clear, 'mod': lambda: handle_binary_operator('mod'), '**': lambda: handle_binary_operator('**'),
+    'AC': handle_clear, 'mod': lambda: handle_binary_operator('mod'), 'EXP': lambda: handle_binary_operator('**'), # ** -> EXP
     '7': lambda: handle_number(7), '8': lambda: handle_number(8), '9': lambda: handle_number(9),
-    '/': lambda: handle_binary_operator('/'), '*': lambda: handle_binary_operator('*'), 
+    'DIV': lambda: handle_binary_operator('/'), 'MUL': lambda: handle_binary_operator('*'), # / -> DIV, * -> MUL
     '4': lambda: handle_number(4), '5': lambda: handle_number(5), '6': lambda: handle_number(6),
-    '-': lambda: handle_binary_operator('-'), '+': lambda: handle_binary_operator('+'), 
+    'SUB': lambda: handle_binary_operator('-'), 'ADD': lambda: handle_binary_operator('+'), # - -> SUB, + -> ADD
     '1': lambda: handle_number(1), '2': lambda: handle_number(2), '3': lambda: handle_number(3),
     '0': lambda: handle_number(0), '.': handle_decimal, '=': handle_equals,
     '': lambda: None # 공백 버튼용 콜백
 }
 
-# 최종 버튼 배치 그리드 (이전과 동일)
+# 최종 버튼 배치 그리드 (레이블 변경 적용)
 calculator_grid = [
     # C0, C1, C2, C3, C4
     ['sin', 'cos', 'tan', 'log', 'AC'],
-    ['mod', '**', '7', '8', '9'],
-    ['/', 'X', '4', '5', '6'],
-    ['minus', 'plus', '1', '2', '3'], 
+    ['mod', 'EXP', '7', '8', '9'],
+    ['DIV', 'MUL', '4', '5', '6'],
+    ['SUB', 'ADD', '1', '2', '3'], # 뺄셈(SUB), 덧셈(ADD) 사용
     ['', '', '0', '.', '='], 
 ]
 
-# 최종 버튼 배치 루프 (버튼 레이블을 명확히 표시)
+# 최종 버튼 배치 루프
 for row_labels in calculator_grid:
     cols = st.columns(5)
     for i, label in enumerate(row_labels):
@@ -165,12 +163,10 @@ for row_labels in calculator_grid:
         button_type = 'primary' if label in ['AC', '='] else 'secondary'
         
         with cols[i]:
-            # **공백 문자열일 경우, 레이블을 ' '로 설정하여 버튼 공간은 차지하게 함**
-            # **나머지 연산자는 모두 레이블을 그대로 사용합니다.**
             button_label = label if label != '' else ' '
             
             st.button(
-                button_label,  # label 변수를 그대로 사용하면 +, -, * 표시됩니다.
+                button_label, 
                 on_click=callback, 
                 key=f"btn_{label}_{i}", 
                 use_container_width=True, 
@@ -178,4 +174,4 @@ for row_labels in calculator_grid:
             )
         
 st.markdown("---")
-st.caption("사칙연산, Modulo, 지수, 로그(밑 10), 삼각함수(도 기준)를 지원합니다. 버튼 레이블 표시 문제를 수정했습니다.")
+st.caption("사칙연산 버튼 레이블을 영어 약자(ADD, SUB, MUL, DIV)로 변경하여 표시 오류를 해결했습니다.")
